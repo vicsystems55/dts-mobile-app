@@ -59,6 +59,7 @@ class _RegisterPageState extends State<RegisterPage> {
         Uri.parse(url),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json'
         },
         body: jsonEncode(<String, String>{
           'name': nameController.text,
@@ -74,25 +75,34 @@ class _RegisterPageState extends State<RegisterPage> {
 
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage()),
+          MaterialPageRoute(builder: (context) => DashboardPage(newReg: 'yes')),
         );
 
         // ignore: use_build_context_synchronously
-        await Flushbar(
-          icon: const Icon(
-            Icons.check,
-            color: Colors.green,
-          ),
-          title: "Login Successful",
-          message: "Welcome on board",
-          duration: const Duration(seconds: 3),
-        ).show(context);
       } else {
         // Backend returned an error
 
         var errorMessage = jsonDecode(response.body)[
-            'message']; // Modify this based on the actual error field in the response
-        print('Error: $errorMessage');
+            'errors']; // Modify this based on the actual error field in the response
+        print(errorMessage['name']);
+
+        resolveError(error) {
+          String name_error = '';
+          String email_error = '';
+          String password_error = '';
+
+          if (error['name'] != null) {
+            name_error = error['name'][0];
+          }
+          if (error['email'] != null) {
+            email_error = error['email'][0];
+          }
+          if (error['password'] != null) {
+            password_error = error['password'][0];
+          }
+
+          return name_error + '\n' + email_error + '\n' + password_error;
+        }
 
         Flushbar(
           icon: const Icon(
@@ -100,9 +110,13 @@ class _RegisterPageState extends State<RegisterPage> {
             color: Colors.red,
           ),
           title: "An error occured",
-          message: "$errorMessage",
+          message: resolveError(errorMessage),
           duration: const Duration(seconds: 3),
         ).show(context);
+
+        setState(() {
+          isLoading = false;
+        });
 
         // TODO: Handle the error, e.g., show a snackbar or an error dialog.
       }
